@@ -1,0 +1,1163 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Google Update Survivor — Ton site survivra-t-il au prochain update ?</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink: '#0F1115',
+          ink2: '#15181F',
+          ink3: '#1C2029',
+          line: '#252A36',
+          line2: '#2F3542',
+          accent: '#2563EB',
+          accent2: '#3B82F6',
+          ok: '#10B981',
+          warn: '#F59E0B',
+          bad: '#EF4444',
+          mute: '#8A93A6',
+          mute2: '#5A6273',
+        },
+        fontFamily: {
+          sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
+          mono: ['"DM Mono"', 'ui-monospace', 'monospace'],
+        },
+      }
+    }
+  }
+</script>
+
+<style>
+  html, body { background: #0F1115; }
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    color: #fff;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    letter-spacing: -0.005em;
+  }
+  /* subtle grid bg */
+  .bg-grid {
+    background-image:
+      radial-gradient(1200px 600px at 50% -10%, rgba(37,99,235,0.18), transparent 60%),
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: auto, 44px 44px, 44px 44px;
+    background-position: 0 0, 0 0, 0 0;
+  }
+  .noise::after {
+    content: '';
+    position: absolute; inset: 0;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    mix-blend-mode: overlay;
+    opacity: 0.5;
+  }
+
+  /* tick / spinner */
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+  .blink { animation: blink 1.1s ease-in-out infinite; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin { animation: spin 0.9s linear infinite; }
+
+  @keyframes barfill {
+    from { width: 0%; }
+  }
+  .barfill { animation: barfill linear forwards; }
+
+  @keyframes risein {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .risein { animation: risein 0.5s cubic-bezier(.2,.7,.2,1) both; }
+
+  @keyframes pop {
+    0% { transform: scale(.92); opacity: 0; }
+    60% { transform: scale(1.02); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .pop { animation: pop 0.6s cubic-bezier(.2,.8,.2,1) both; }
+
+  @keyframes scan {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100%); }
+  }
+  .scanline {
+    position: absolute; inset: 0; pointer-events: none; overflow: hidden; border-radius: inherit;
+  }
+  .scanline::before {
+    content:'';
+    position: absolute; left: 0; right: 0; height: 40%;
+    background: linear-gradient(180deg, transparent, rgba(37,99,235,0.10), transparent);
+    animation: scan 2.4s ease-in-out infinite;
+  }
+
+  /* score countup container */
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  /* input focus ring tuned to accent */
+  .focus-ring:focus { outline: none; box-shadow: 0 0 0 3px rgba(37,99,235,0.35); border-color: #2563EB; }
+
+  /* selection */
+  ::selection { background: rgba(37,99,235,0.4); color: #fff; }
+
+  /* hide tailwind's default arrows on number inputs etc */
+  input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+  /* link underline */
+  .ulink { background-image: linear-gradient(currentColor, currentColor); background-size: 100% 1px; background-repeat: no-repeat; background-position: 0 100%; }
+</style>
+</head>
+<body class="min-h-screen">
+
+<div id="app"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useMemo } = React;
+
+/* ---------- Icons (inline, minimal) ---------- */
+const Icon = {
+  Check: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M20 6 9 17l-5-5"/>
+    </svg>
+  ),
+  Spin: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" {...p}>
+      <path d="M21 12a9 9 0 1 1-3.5-7.1" opacity=".9"/>
+    </svg>
+  ),
+  Arrow: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M5 12h14M13 6l6 6-6 6"/>
+    </svg>
+  ),
+  Search: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+    </svg>
+  ),
+  Mail: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/>
+    </svg>
+  ),
+  Globe: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>
+    </svg>
+  ),
+  Spark: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8"/>
+    </svg>
+  ),
+  Restart: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/>
+    </svg>
+  ),
+};
+
+/* ---------- Helpers ---------- */
+function normalizeUrl(raw) {
+  let s = (raw || '').trim();
+  if (!s) return null;
+  if (!/^https?:\/\//i.test(s)) s = 'https://' + s;
+  try {
+    const u = new URL(s);
+    if (!u.hostname.includes('.')) return null;
+    return u;
+  } catch { return null; }
+}
+
+function seedFromString(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return () => { h = Math.imul(h ^ (h >>> 13), 1597334677); h ^= h >>> 16; return ((h >>> 0) % 1000) / 1000; };
+}
+
+const FIX_POOL = [
+  { t: "Réécris tes 5 pages les plus visitées",        d: "Vire le ton générique. Ajoute ton vécu, des chiffres, des exemples concrets." },
+  { t: "Mets un vrai auteur sur chaque article",        d: "Nom, photo, bio, LinkedIn. Google veut savoir qui parle. Pas “Team Editorial”." },
+  { t: "Supprime ou fusionne le thin content",          d: "Toute page sous 400 mots qui ne convertit pas : poubelle ou regroupée." },
+  { t: "Retravaille les pages générées par IA",         d: "Ajoute un angle perso, une opinion, un cas client. L’IA brute ne passe plus." },
+  { t: "Profondeur > volume sur tes pages piliers",     d: "Mieux vaut 8 articles excellents que 40 moyens. Coupe le gras." },
+  { t: "Ajoute des preuves : screenshots, captures",    d: "Montre que tu as VRAIMENT fait le truc dont tu parles. E-E-A-T = expérience." },
+  { t: "Date et update tes vieux articles",             d: "Mets-les à jour pour 2026, ajoute du neuf, change la date publiquement." },
+  { t: "Une page = une intention claire",               d: "Si la page essaie de plaire à 3 audiences, elle plaît à zéro." },
+  { t: "Renforce les pages “À propos” et “Contact”",    d: "Adresse, équipe, mentions légales. Les sites flous se font dégommer." },
+  { t: "Coupe les CTAs agressifs en haut de page",      d: "Pop-ups, bannières, “téléchargez maintenant” x4 : pénalisé." },
+  { t: "Maillage interne propre vers tes piliers",      d: "Chaque article doit lier au moins 2 pages clés du site." },
+  { t: "Vire les articles “top 10 outils” génériques",  d: "Recopiés partout. Aucune valeur. Risque rouge sur le prochain update." },
+];
+
+const AXES = [
+  { key: 'eeat',    label: 'E-E-A-T',           hint: 'Qui parle, et pourquoi on devrait l’écouter.' },
+  { key: 'helpful', label: 'Helpful Content',   hint: 'Le site aide vraiment, ou il remplit du vide ?' },
+  { key: 'edito',   label: 'Qualité éditoriale',hint: 'Profondeur, ton, soin du texte.' },
+  { key: 'risk',    label: 'Signaux à risque',  hint: 'IA brute, thin content, recyclage.' },
+];
+
+function buildVerdict(url) {
+  const rand = seedFromString(url.hostname + url.pathname);
+  // weighted score 30..95
+  const base = Math.round(30 + rand() * 65);
+  const score = base;
+  const tier =
+    score >= 75 ? 'safe' :
+    score >= 50 ? 'risk' :
+                  'hit';
+
+  // per-axis subscores that roughly average to the score
+  const jitter = () => (rand() - 0.5) * 22;
+  const axes = AXES.map(a => {
+    let v = Math.max(15, Math.min(98, Math.round(score + jitter())));
+    return { ...a, score: v };
+  });
+
+  // pick 3 fixes deterministically
+  const idxs = new Set();
+  while (idxs.size < 3) idxs.add(Math.floor(rand() * FIX_POOL.length));
+  const fixes = [...idxs].map(i => FIX_POOL[i]);
+
+  const explainBy = {
+    safe: [
+      "Ton site coche les bonnes cases. Auteur clair, contenu utile, ton humain.",
+      "Le prochain core update ne devrait pas te faire mal. Tu es au-dessus du seuil.",
+      "Reste vigilant : un update peut bouger le terrain en 48h.",
+    ],
+    risk: [
+      "Ton site est dans la zone grise. Pas pénalisé, pas protégé.",
+      "Quelques signaux faibles : auteurs flous, pages tièdes, ton un peu robotique.",
+      "Avec 2 semaines de boulot ciblé, tu sors de la zone à risque.",
+    ],
+    hit: [
+      "Ton site est dans le viseur du prochain core update.",
+      "Trop de contenu générique, pas assez de preuve d’expertise réelle.",
+      "Bonne nouvelle : c’est rattrapable. Mauvaise : il faut s’y mettre maintenant.",
+    ],
+  };
+
+  return { score, tier, axes, fixes, explain: explainBy[tier] };
+}
+
+const TIER_META = {
+  safe: { label: 'SAFE',      emoji: '🟢', color: '#10B981', bg: 'rgba(16,185,129,0.12)',  ring: 'rgba(16,185,129,0.35)',  short: 'Tu passes le prochain update.' },
+  risk: { label: 'À RISQUE',  emoji: '🟡', color: '#F59E0B', bg: 'rgba(245,158,11,0.12)',  ring: 'rgba(245,158,11,0.35)',  short: 'Tu es dans la zone grise.' },
+  hit:  { label: 'AFFECTÉ',   emoji: '🔴', color: '#EF4444', bg: 'rgba(239,68,68,0.12)',   ring: 'rgba(239,68,68,0.4)',    short: 'Tu vas prendre cher.' },
+};
+
+/* ---------- Top bar ---------- */
+function TopBar() {
+  return (
+    <header className="relative z-20 border-b border-line/70">
+      <div className="mx-auto max-w-6xl px-5 sm:px-8 h-14 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="relative h-7 w-7 rounded-md bg-accent grid place-items-center shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
+            <span className="font-mono text-[11px] font-bold tracking-tight">GU</span>
+          </div>
+          <div className="leading-tight">
+            <div className="text-[13px] font-semibold tracking-tight">Google Update Survivor</div>
+            <div className="text-[10.5px] font-mono text-mute -mt-0.5">v1.0 · build 2026.05</div>
+          </div>
+        </div>
+        <div className="hidden sm:flex items-center gap-3 text-[12px] text-mute">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-ok blink"/>
+            <span className="font-mono">live · check-engine OK</span>
+          </span>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+/* ---------- Hero / form ---------- */
+function Hero({ onSubmit, error, setError }) {
+  const [val, setVal] = useState('');
+  const inputRef = useRef(null);
+
+  const submit = (e) => {
+    e?.preventDefault?.();
+    const u = normalizeUrl(val);
+    if (!u) { setError("Hmm, cette URL n’a pas l’air bonne. Essaie : tonsite.com"); return; }
+    setError(null);
+    onSubmit(u);
+  };
+
+  return (
+    <section data-screen-label="01 Hero" className="relative bg-grid noise overflow-hidden">
+      <div className="relative z-10 mx-auto max-w-6xl px-5 sm:px-8 pt-14 sm:pt-24 pb-16 sm:pb-28">
+        {/* eyebrow */}
+        <div className="inline-flex items-center gap-2 rounded-full border border-line bg-ink2/60 backdrop-blur px-3 py-1 text-[11.5px] font-mono text-mute">
+          <span className="h-1.5 w-1.5 rounded-full bg-accent"/>
+          <span>diagnostic · sans inscription · 30s</span>
+        </div>
+
+        <h1 className="mt-5 sm:mt-7 text-[34px] leading-[1.05] sm:text-[64px] sm:leading-[1.02] font-semibold tracking-[-0.02em] max-w-[18ch]" style={{textWrap:'balance'}}>
+          Ton site survivra-t-il au prochain <span className="text-accent">Google Update</span> ?
+        </h1>
+
+        <p className="mt-4 sm:mt-6 text-[16px] sm:text-[20px] text-mute max-w-[44ch]">
+          30 secondes. 4 critères. Un verdict honnête.
+        </p>
+
+        {/* form */}
+        <form id="diag-form" onSubmit={submit} className="mt-7 sm:mt-10 max-w-2xl">
+          <div className={"group relative flex flex-col sm:flex-row items-stretch gap-2 rounded-2xl border " + (error ? "border-bad/60" : "border-line2") + " bg-ink2/80 backdrop-blur p-2"}>
+            <div className="flex items-center gap-2 px-3 sm:px-3 sm:flex-1">
+              <Icon.Globe className="h-4 w-4 text-mute shrink-0"/>
+              <input
+                ref={inputRef}
+                value={val}
+                onChange={e => { setVal(e.target.value); if (error) setError(null); }}
+                placeholder="tonsite.com"
+                inputMode="url"
+                autoComplete="url"
+                spellCheck={false}
+                className="focus-ring w-full bg-transparent py-3 text-[16px] sm:text-[17px] placeholder:text-mute2 text-white outline-none"
+              />
+            </div>
+            <button
+              type="submit"
+              className="shrink-0 inline-flex items-center justify-center gap-2 rounded-xl bg-accent hover:bg-accent2 active:scale-[0.99] transition px-5 py-3.5 sm:py-3 font-semibold text-[15px] tracking-tight"
+            >
+              Analyser mon site
+              <Icon.Arrow className="h-4 w-4"/>
+            </button>
+          </div>
+          {error && (
+            <div className="mt-2 text-[13px] text-bad font-mono">{error}</div>
+          )}
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px] font-mono text-mute">
+            <span className="inline-flex items-center gap-1.5"><span className="h-1 w-1 rounded-full bg-mute"/> aucun login</span>
+            <span className="inline-flex items-center gap-1.5"><span className="h-1 w-1 rounded-full bg-mute"/> on ne stocke pas l’URL</span>
+            <span className="inline-flex items-center gap-1.5"><span className="h-1 w-1 rounded-full bg-mute"/> 100% gratuit</span>
+          </div>
+        </form>
+
+        {/* axes preview */}
+        <div className="mt-12 sm:mt-20 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {AXES.map((a, i) => (
+            <div key={a.key} className="rounded-xl border border-line bg-ink2/60 p-4">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[11px] text-mute">0{i+1}</span>
+                <Icon.Spark className="h-3.5 w-3.5 text-mute2"/>
+              </div>
+              <div className="mt-2 text-[14.5px] font-semibold tracking-tight">{a.label}</div>
+              <div className="mt-1 text-[12.5px] text-mute leading-snug">{a.hint}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Loading ---------- */
+function Loader({ url, onDone }) {
+  const STEPS = AXES;
+  const DUR = [950, 900, 850, 950]; // ms per step ~ 3.6s total
+  const [stepIdx, setStepIdx] = useState(0);
+  const [done, setDone] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let acc = 200;
+    const timers = [];
+    STEPS.forEach((s, i) => {
+      timers.push(setTimeout(() => {
+        if (cancelled) return;
+        setStepIdx(i + 1);
+        setDone(d => [...d, i]);
+      }, acc + DUR[i]));
+      acc += DUR[i];
+    });
+    timers.push(setTimeout(() => { if (!cancelled) onDone(); }, acc + 350));
+    return () => { cancelled = true; timers.forEach(clearTimeout); };
+  }, []);
+
+  return (
+    <section data-screen-label="02 Loading" className="relative">
+      <div className="mx-auto max-w-3xl px-5 sm:px-8 py-14 sm:py-24">
+        <div className="relative rounded-2xl border border-line2 bg-ink2/70 overflow-hidden">
+          <div className="scanline"/>
+          <div className="px-5 sm:px-8 py-6 sm:py-8 border-b border-line">
+            <div className="flex items-center justify-between gap-3">
+              <div className="font-mono text-[11.5px] text-mute">running diagnostic</div>
+              <div className="font-mono text-[11.5px] text-mute truncate max-w-[60%]">→ {url.hostname}</div>
+            </div>
+            <div className="mt-3 flex items-baseline gap-3">
+              <div className="text-[22px] sm:text-[26px] font-semibold tracking-tight">On scanne ton site…</div>
+            </div>
+            <div className="mt-1 text-[13.5px] text-mute">Ça prend moins de 30 secondes. Promis.</div>
+          </div>
+
+          <ul className="divide-y divide-line">
+            {STEPS.map((s, i) => {
+              const isDone = done.includes(i);
+              const isActive = stepIdx === i && !isDone;
+              const isPending = i > stepIdx;
+              return (
+                <li key={s.key} className="px-5 sm:px-8 py-4 sm:py-5 flex items-center gap-4">
+                  <div className={"h-7 w-7 rounded-full grid place-items-center shrink-0 " +
+                    (isDone ? "bg-ok/15 text-ok" :
+                     isActive ? "bg-accent/15 text-accent" :
+                                "bg-ink3 text-mute2")}>
+                    {isDone && <Icon.Check className="h-4 w-4"/>}
+                    {isActive && <Icon.Spin className="h-4 w-4 spin"/>}
+                    {isPending && <span className="font-mono text-[11px]">0{i+1}</span>}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className={"text-[15.5px] font-semibold tracking-tight " + (isPending ? "text-mute2" : "text-white")}>
+                      {s.label}
+                    </div>
+                    <div className={"text-[12.5px] " + (isPending ? "text-mute2" : "text-mute")}>{s.hint}</div>
+                    {/* progress bar for active */}
+                    <div className="mt-2 h-[3px] rounded-full bg-line overflow-hidden">
+                      <div
+                        className={isActive ? "barfill h-full bg-accent" : "h-full"}
+                        style={{
+                          width: isDone ? '100%' : (isActive ? undefined : '0%'),
+                          background: isDone ? '#10B981' : undefined,
+                          animationDuration: isActive ? DUR[i] + 'ms' : undefined,
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className={"font-mono text-[11.5px] " + (isDone ? "text-ok" : isActive ? "text-accent" : "text-mute2")}>
+                    {isDone ? "ok" : isActive ? "…" : "—"}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          <div className="px-5 sm:px-8 py-4 border-t border-line flex items-center justify-between">
+            <div className="font-mono text-[11.5px] text-mute">étape {Math.min(stepIdx+1, STEPS.length)} / {STEPS.length}</div>
+            <div className="font-mono text-[11.5px] text-mute">≈ {Math.max(0, Math.ceil((DUR.slice(stepIdx).reduce((a,b)=>a+b,0))/1000))}s restantes</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Score ring ---------- */
+function ScoreRing({ score, color }) {
+  const R = 56, C = 2 * Math.PI * R;
+  const [shown, setShown] = useState(0);
+  useEffect(() => {
+    let raf, start;
+    const dur = 900;
+    const step = (t) => {
+      if (!start) start = t;
+      const p = Math.min(1, (t - start) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setShown(Math.round(score * eased));
+      if (p < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [score]);
+
+  const offset = C - (shown / 100) * C;
+  return (
+    <div className="relative h-[140px] w-[140px]">
+      <svg viewBox="0 0 140 140" className="h-full w-full -rotate-90">
+        <circle cx="70" cy="70" r={R} stroke="#252A36" strokeWidth="10" fill="none"/>
+        <circle cx="70" cy="70" r={R}
+          stroke={color} strokeWidth="10" fill="none" strokeLinecap="round"
+          strokeDasharray={C} strokeDashoffset={offset}
+          style={{ transition: 'stroke-dashoffset 60ms linear' }}
+        />
+      </svg>
+      <div className="absolute inset-0 grid place-items-center">
+        <div className="text-center">
+          <div className="tabular text-[40px] leading-none font-semibold tracking-tight">{shown}</div>
+          <div className="font-mono text-[10.5px] text-mute mt-1">/ 100</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Result ---------- */
+function Result({ url, verdict, onRestart }) {
+  const meta = TIER_META[verdict.tier];
+
+  return (
+    <section data-screen-label="03 Result" className="relative">
+      <div className="mx-auto max-w-3xl px-5 sm:px-8 py-10 sm:py-16">
+        {/* meta strip */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono text-[11.5px] text-mute">
+          <span>verdict pour</span>
+          <span className="text-white truncate max-w-[60vw]">{url.hostname}{url.pathname !== '/' ? url.pathname : ''}</span>
+          <span>·</span>
+          <span>scanné en 3.6s</span>
+        </div>
+
+        {/* verdict card */}
+        <div className="pop mt-3 rounded-2xl border bg-ink2/70 overflow-hidden"
+             style={{ borderColor: meta.ring }}>
+          <div className="px-5 sm:px-8 pt-6 sm:pt-8 pb-6 sm:pb-7"
+               style={{ background: `linear-gradient(180deg, ${meta.bg}, transparent 80%)` }}>
+            <div className="flex items-start sm:items-center gap-5 sm:gap-7 flex-col sm:flex-row">
+              <ScoreRing score={verdict.score} color={meta.color}/>
+              <div className="flex-1">
+                <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[12px] font-mono"
+                     style={{ background: meta.bg, color: meta.color, border: `1px solid ${meta.ring}` }}>
+                  <span>{meta.emoji}</span>
+                  <span className="font-semibold tracking-wide">{meta.label}</span>
+                </div>
+                <h2 className="mt-3 text-[26px] sm:text-[34px] leading-[1.08] font-semibold tracking-[-0.01em]" style={{textWrap:'balance'}}>
+                  {meta.short}
+                </h2>
+                <div className="mt-3 space-y-1.5 text-[14.5px] sm:text-[15.5px] text-white/85 leading-snug">
+                  {verdict.explain.map((line, i) => (
+                    <p key={i} className="risein" style={{animationDelay: (120 + i*90) + 'ms'}}>{line}</p>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* axis breakdown */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-line border-t" style={{borderColor: '#252A36'}}>
+            {verdict.axes.map((a) => {
+              const c = a.score >= 75 ? '#10B981' : a.score >= 50 ? '#F59E0B' : '#EF4444';
+              return (
+                <div key={a.key} className="bg-ink2 p-4">
+                  <div className="font-mono text-[10.5px] text-mute uppercase tracking-wider">{a.label}</div>
+                  <div className="mt-1.5 flex items-baseline gap-1">
+                    <span className="tabular text-[22px] font-semibold" style={{color: c}}>{a.score}</span>
+                    <span className="font-mono text-[11px] text-mute">/100</span>
+                  </div>
+                  <div className="mt-2 h-1.5 rounded-full bg-ink3 overflow-hidden">
+                    <div className="h-full rounded-full" style={{width: a.score + '%', background: c}}/>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* TOP 3 FIXES */}
+        <div className="mt-8 sm:mt-10">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <div className="font-mono text-[11.5px] text-mute uppercase tracking-wider">priorités</div>
+              <h3 className="mt-1 text-[22px] sm:text-[26px] font-semibold tracking-tight">Top 3 fixes</h3>
+            </div>
+            <div className="font-mono text-[11.5px] text-mute hidden sm:block">à faire avant le prochain update</div>
+          </div>
+
+          <ol className="mt-4 sm:mt-5 space-y-2.5">
+            {verdict.fixes.map((f, i) => (
+              <li key={i}
+                  className="risein rounded-xl border border-line bg-ink2/70 p-4 sm:p-5 flex gap-4"
+                  style={{animationDelay: (260 + i*90) + 'ms'}}>
+                <div className="shrink-0 h-8 w-8 rounded-lg bg-accent/15 text-accent grid place-items-center font-mono font-semibold">
+                  0{i+1}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[15.5px] font-semibold tracking-tight">{f.t}</div>
+                  <div className="mt-0.5 text-[13.5px] text-mute leading-snug">{f.d}</div>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        {/* lead magnet */}
+        <LeadMagnet/>
+
+        {/* restart */}
+        <div className="mt-8 flex items-center justify-center">
+          <button
+            onClick={onRestart}
+            className="inline-flex items-center gap-2 rounded-full border border-line2 bg-ink2/70 hover:bg-ink3 transition px-4 py-2 text-[13px] font-mono text-mute hover:text-white"
+          >
+            <Icon.Restart className="h-3.5 w-3.5"/> tester une autre URL
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Lead magnet ---------- */
+function LeadMagnet() {
+  const [email, setEmail] = useState('');
+  const [state, setState] = useState('idle'); // idle | sending | done | err
+  const [err, setErr] = useState(null);
+
+  const submit = (e) => {
+    e.preventDefault();
+    const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+    if (!ok) { setErr("Ton email a l’air bizarre. Re-tente."); return; }
+    setErr(null); setState('sending');
+    setTimeout(() => setState('done'), 900);
+  };
+
+  return (
+    <div className="mt-10 sm:mt-12 relative overflow-hidden rounded-2xl border border-accent/40"
+         style={{ background: 'linear-gradient(180deg, rgba(37,99,235,0.18), rgba(37,99,235,0.06))' }}>
+      <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full"
+           style={{ background: 'radial-gradient(closest-side, rgba(59,130,246,0.45), transparent)' }}/>
+      <div className="relative px-5 sm:px-8 py-7 sm:py-9">
+        <div className="inline-flex items-center gap-2 rounded-full bg-accent/20 border border-accent/40 px-3 py-1 text-[11.5px] font-mono">
+          📩 bonus gratuit
+        </div>
+
+        <h3 className="mt-3 text-[22px] sm:text-[26px] font-semibold tracking-tight max-w-[28ch]" style={{textWrap:'balance'}}>
+          Tu veux la checklist complète + les 7 signaux à monitorer ?
+        </h3>
+        <p className="mt-2 text-[14.5px] text-white/75 max-w-[44ch]">
+          Reçois le PDF en DM. Pas de spam. Pas de séquence à 12 mails.
+        </p>
+
+        {state !== 'done' ? (
+          <form onSubmit={submit} className="mt-5 max-w-xl">
+            <div className={"flex flex-col sm:flex-row items-stretch gap-2 rounded-xl border " + (err ? "border-bad/60" : "border-accent/50") + " bg-ink/60 p-2"}>
+              <div className="flex items-center gap-2 px-3 sm:flex-1">
+                <Icon.Mail className="h-4 w-4 text-mute shrink-0"/>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => { setEmail(e.target.value); if (err) setErr(null); }}
+                  placeholder="ton@email.com"
+                  className="focus-ring w-full bg-transparent py-3 text-[15.5px] placeholder:text-mute2 text-white outline-none"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={state === 'sending'}
+                className="shrink-0 inline-flex items-center justify-center gap-2 rounded-lg bg-accent hover:bg-accent2 active:scale-[0.99] disabled:opacity-70 transition px-4 py-3 sm:py-2.5 font-semibold text-[14.5px]"
+              >
+                {state === 'sending' ? <><Icon.Spin className="h-4 w-4 spin"/> envoi…</> : <>Recevoir la checklist <Icon.Arrow className="h-4 w-4"/></>}
+              </button>
+            </div>
+            {err && <div className="mt-2 font-mono text-[12.5px] text-bad">{err}</div>}
+            <div className="mt-2 font-mono text-[11.5px] text-mute">checklist · 4 pages · PDF · 0 carte bleue</div>
+          </form>
+        ) : (
+          <div className="mt-5 risein rounded-xl border border-ok/40 bg-ok/10 p-4 sm:p-5 flex items-start gap-3">
+            <div className="h-8 w-8 rounded-full bg-ok/20 text-ok grid place-items-center shrink-0">
+              <Icon.Check className="h-4 w-4"/>
+            </div>
+            <div>
+              <div className="text-[15.5px] font-semibold tracking-tight">C’est parti.</div>
+              <div className="mt-0.5 text-[13.5px] text-white/75">Le PDF arrive dans ta boîte. Vérifie les spams si rien dans 5 min.</div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Landing sections (educational) ---------- */
+function scrollToForm() {
+  const el = document.getElementById('diag-form');
+  if (!el) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+  const y = el.getBoundingClientRect().top + window.scrollY - 80;
+  window.scrollTo({ top: y, behavior: 'smooth' });
+  setTimeout(() => { const i = el.querySelector('input'); i && i.focus({ preventScroll: true }); }, 500);
+}
+
+function SectionLabel({ n, children }) {
+  return (
+    <div className="inline-flex items-center gap-2 font-mono text-[11.5px] text-mute uppercase tracking-[0.14em]">
+      <span className="text-accent">§ {n}</span>
+      <span className="h-px w-8 bg-line2"/>
+      <span>{children}</span>
+    </div>
+  );
+}
+
+/* §1 — Carnage section */
+function CarnageSection() {
+  const stats = [
+    { n: '–62%',  l: 'de trafic en moyenne sur les sites pénalisés', s: 'données agrégées 2024-2025' },
+    { n: '14j',   l: 'pour qu’un site touché perde la moitié de son SEO', s: 'observation terrain MV Agency' },
+    { n: '4 / 5', l: 'sites ne s’en remettent jamais sans intervention',   s: 'core update post-mortem' },
+  ];
+  return (
+    <section data-screen-label="L1 Carnage" className="relative border-t border-line/70 bg-ink">
+      <div className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-24">
+        <SectionLabel n="01">le contexte</SectionLabel>
+        <h2 className="mt-4 text-[30px] sm:text-[48px] leading-[1.05] font-semibold tracking-[-0.02em] max-w-[20ch]" style={{textWrap:'balance'}}>
+          Septembre 2025 : <span className="text-bad">carnage</span> sur des milliers de sites.
+        </h2>
+        <p className="mt-5 text-[16px] sm:text-[19px] text-mute max-w-[58ch] leading-snug">
+          Du jour au lendemain. Trafic divisé par 3. Demandes de devis à zéro.
+          Des dirigeants qui découvrent par accident qu’ils n’existent plus sur Google.
+        </p>
+
+        <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {stats.map((s, i) => (
+            <div key={i} className="rounded-2xl border border-line bg-ink2/60 p-5 sm:p-6">
+              <div className="font-mono text-[11px] text-mute">stat 0{i+1}</div>
+              <div className="mt-1 text-[44px] sm:text-[52px] leading-none font-semibold tracking-[-0.03em] text-white tabular">{s.n}</div>
+              <div className="mt-3 text-[14.5px] text-white/85 leading-snug">{s.l}</div>
+              <div className="mt-2 font-mono text-[11px] text-mute2">{s.s}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-10 rounded-2xl border border-line2 bg-ink2/70 overflow-hidden">
+          <div className="px-5 sm:px-8 py-5 border-b border-line flex items-center justify-between gap-3">
+            <div className="font-mono text-[11.5px] text-mute uppercase tracking-wider">étude de cas anonymisée</div>
+            <div className="font-mono text-[11.5px] text-mute">site B2B · 80k visites/mois</div>
+          </div>
+          <div className="p-5 sm:p-8 grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-6 sm:gap-10 items-end">
+            <div>
+              <div className="font-mono text-[11px] text-mute">avant</div>
+              <div className="mt-1 text-[28px] sm:text-[34px] font-semibold tabular">82 400</div>
+              <div className="text-[12.5px] text-mute">visites/mois · août 2025</div>
+              <div className="mt-3 h-2 rounded-full bg-line overflow-hidden">
+                <div className="h-full bg-white/60" style={{width: '100%'}}/>
+              </div>
+            </div>
+            <div className="hidden sm:flex flex-col items-center gap-1">
+              <Icon.Arrow className="h-5 w-5 text-bad"/>
+              <div className="font-mono text-[11px] text-bad">−71%</div>
+            </div>
+            <div>
+              <div className="font-mono text-[11px] text-mute">après</div>
+              <div className="mt-1 text-[28px] sm:text-[34px] font-semibold tabular text-bad">23 900</div>
+              <div className="text-[12.5px] text-mute">visites/mois · novembre 2025</div>
+              <div className="mt-3 h-2 rounded-full bg-line overflow-hidden">
+                <div className="h-full bg-bad" style={{width: '29%'}}/>
+              </div>
+            </div>
+          </div>
+          <div className="px-5 sm:px-8 py-4 border-t border-line text-[13px] text-mute leading-snug">
+            « On comprenait pas. On avait rien changé. C’est exactement le problème. »
+            <span className="ml-2 font-mono text-[11px] text-mute2">— founder, agence conseil</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* §2 — What is a Google update */
+function ExplainerSection() {
+  return (
+    <section data-screen-label="L2 Explainer" className="relative border-t border-line/70">
+      <div className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-24">
+        <SectionLabel n="02">c’est quoi le truc</SectionLabel>
+        <h2 className="mt-4 text-[30px] sm:text-[48px] leading-[1.05] font-semibold tracking-[-0.02em] max-w-[22ch]" style={{textWrap:'balance'}}>
+          Un “Google Update”, en français pour humains.
+        </h2>
+
+        <div className="mt-10 grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-8 sm:gap-12 items-start">
+          <div className="space-y-5 text-[16.5px] sm:text-[18px] text-white/90 leading-relaxed max-w-[58ch]">
+            <p>
+              Plusieurs fois par an, Google change ses règles du jeu.
+              Pas un bug, pas un détail. Une <span className="text-white font-semibold">remise à zéro</span> de qui mérite d’être vu.
+            </p>
+            <p>
+              Sa mission depuis 2024 : virer les sites tièdes.
+              Trop d’IA brute. Trop de blogs vides. Trop de pages qui ne servent personne.
+            </p>
+            <p>
+              Si ton site coche les cases <span className="text-bad font-semibold">“générique”</span>,
+              <span className="text-bad font-semibold"> “sans auteur clair”</span> ou
+              <span className="text-bad font-semibold"> “contenu jetable”</span> — tu sors du radar.
+              Du jour au lendemain.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-line2 bg-ink2/70 overflow-hidden">
+            <div className="px-5 py-3 border-b border-line flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-bad/60"/>
+                <span className="h-2.5 w-2.5 rounded-full bg-warn/60"/>
+                <span className="h-2.5 w-2.5 rounded-full bg-ok/60"/>
+              </div>
+              <div className="font-mono text-[10.5px] text-mute">core_updates · timeline</div>
+            </div>
+            <ul className="divide-y divide-line">
+              {[
+                { d: 'mars 2024',     n: 'Helpful Content',           t: 'Google sort la première grosse purge anti-IA générique.', tone: 'warn' },
+                { d: 'août 2024',     n: 'August Core Update',        t: 'Sites éditoriaux flous : −40% en 3 jours.', tone: 'bad' },
+                { d: 'mars 2025',     n: 'March Core Update',         t: 'Renforcement E-E-A-T. Auteur réel devient critique.', tone: 'warn' },
+                { d: 'sept. 2025',    n: 'September Core Update',     t: 'Carnage. Sites IA, sites recyclés : balayés.', tone: 'bad' },
+                { d: 'à venir',       n: 'Le prochain',               t: 'On ne sait pas la date. On sait ce qu’il vise.', tone: 'accent' },
+              ].map((x, i) => {
+                const c = x.tone === 'bad' ? '#EF4444' : x.tone === 'warn' ? '#F59E0B' : '#2563EB';
+                return (
+                  <li key={i} className="px-5 py-3.5 flex items-start gap-4">
+                    <span className="font-mono text-[11px] text-mute w-[78px] shrink-0 mt-0.5">{x.d}</span>
+                    <div className="min-w-0">
+                      <div className="text-[14px] font-semibold tracking-tight" style={{color: c}}>{x.n}</div>
+                      <div className="text-[12.5px] text-mute leading-snug">{x.t}</div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* §3 — Why your site got hit */
+function ReasonsSection() {
+  const reasons = [
+    {
+      tag: 'IA brute',
+      t: 'Tu as publié 40 articles ChatGPT sans les retravailler.',
+      d: 'Google les détecte. Ton site est marqué “contenu de remplissage”.',
+      bad: ['articles publiés tels quels', 'aucun avis perso ajouté', 'tons identiques d’une page à l’autre'],
+    },
+    {
+      tag: 'auteur fantôme',
+      t: 'Personne ne signe tes contenus.',
+      d: 'Ni nom, ni photo, ni preuve d’expérience. Google ne sait pas qui parle.',
+      bad: ['articles signés “équipe rédaction”', 'pas de page “à propos” crédible', 'aucun lien LinkedIn ou bio'],
+    },
+    {
+      tag: 'thin content',
+      t: 'Tu as 200 pages, dont 150 servent à rien.',
+      d: 'Pages courtes, dupliquées, juste là pour le SEO. Pénalisé.',
+      bad: ['articles sous 400 mots', 'pages “glossaire” vides', 'pages localisées copiées-collées'],
+    },
+    {
+      tag: 'helpful = 0',
+      t: 'Ton contenu n’aide vraiment personne.',
+      d: 'Aucun cas concret, aucun chiffre, aucune action claire à la fin.',
+      bad: ['articles “qu’est-ce que…”', 'top 10 outils sans test réel', 'définitions recopiées de Wikipedia'],
+    },
+  ];
+
+  return (
+    <section data-screen-label="L3 Reasons" className="relative border-t border-line/70 bg-ink">
+      <div className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-24">
+        <SectionLabel n="03">pourquoi ça t’est tombé dessus</SectionLabel>
+        <h2 className="mt-4 text-[30px] sm:text-[48px] leading-[1.05] font-semibold tracking-[-0.02em] max-w-[22ch]" style={{textWrap:'balance'}}>
+          Les 4 raisons pour lesquelles ton site dégage.
+        </h2>
+        <p className="mt-5 text-[16px] sm:text-[18px] text-mute max-w-[58ch] leading-snug">
+          Spoiler : si tu as fait du contenu en 2023-2024 sans cadre clair, tu en coches au moins deux.
+        </p>
+
+        <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+          {reasons.map((r, i) => (
+            <div key={i} className="rounded-2xl border border-line bg-ink2/60 p-5 sm:p-6 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[11px] text-bad uppercase tracking-wider">#{i+1} · {r.tag}</span>
+                <span className="font-mono text-[10.5px] text-mute2">red flag</span>
+              </div>
+              <div>
+                <div className="text-[19px] sm:text-[22px] font-semibold tracking-tight leading-snug" style={{textWrap:'balance'}}>
+                  {r.t}
+                </div>
+                <div className="mt-2 text-[14px] text-mute leading-snug">{r.d}</div>
+              </div>
+              <ul className="mt-auto space-y-1.5">
+                {r.bad.map((b, j) => (
+                  <li key={j} className="flex items-start gap-2 text-[13px] text-white/75">
+                    <span className="mt-[7px] h-1 w-1 rounded-full bg-bad shrink-0"/>
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* §4 — What this tool checks */
+function ToolExplainSection() {
+  const checks = [
+    { k: 'E-E-A-T',           q: 'Qui parle, et c’est crédible ?', detail: 'Auteur réel, bio, expérience, pages légales.' },
+    { k: 'Helpful Content',   q: 'Ton contenu aide vraiment ?',     detail: 'Profondeur, intention claire, action en sortie.' },
+    { k: 'Qualité éditoriale',q: 'C’est lisible et soigné ?',       detail: 'Ton humain, structure, pas de remplissage.' },
+    { k: 'Signaux à risque',  q: 'Tu déclenches des alarmes ?',     detail: 'IA brute, thin content, pages dupliquées.' },
+  ];
+  return (
+    <section data-screen-label="L4 Tool" className="relative border-t border-line/70">
+      <div className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-24">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-10 sm:gap-16 items-start">
+          <div>
+            <SectionLabel n="04">ce que fait l’outil</SectionLabel>
+            <h2 className="mt-4 text-[30px] sm:text-[44px] leading-[1.05] font-semibold tracking-[-0.02em]" style={{textWrap:'balance'}}>
+              Un diagnostic. <span className="text-accent">4 axes.</span> Pas de bla-bla.
+            </h2>
+            <p className="mt-5 text-[16px] sm:text-[18px] text-mute max-w-[48ch] leading-snug">
+              Tu colles ton URL. On scanne les 4 critères que Google regarde vraiment.
+              Tu ressors avec un score, un verdict, et 3 trucs à corriger en priorité.
+            </p>
+            <div className="mt-7">
+              <button onClick={scrollToForm}
+                className="inline-flex items-center gap-2 rounded-xl bg-accent hover:bg-accent2 active:scale-[0.99] transition px-5 py-3 font-semibold text-[15px]">
+                Lancer le diagnostic <Icon.Arrow className="h-4 w-4"/>
+              </button>
+              <div className="mt-2 font-mono text-[11.5px] text-mute">gratuit · 30 secondes · sans email</div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-line2 bg-ink2/70 overflow-hidden">
+            <div className="px-5 py-3 border-b border-line flex items-center justify-between">
+              <div className="font-mono text-[11px] text-mute">checks.run()</div>
+              <div className="font-mono text-[11px] text-ok">● ready</div>
+            </div>
+            <ul className="divide-y divide-line">
+              {checks.map((c, i) => (
+                <li key={i} className="px-5 sm:px-6 py-4 flex items-start gap-4">
+                  <div className="h-9 w-9 rounded-lg bg-accent/15 text-accent grid place-items-center font-mono font-semibold shrink-0">
+                    0{i+1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[15px] font-semibold tracking-tight">{c.k}</div>
+                    <div className="text-[13.5px] text-mute leading-snug mt-0.5">{c.q}</div>
+                    <div className="mt-2 font-mono text-[11.5px] text-mute2">→ {c.detail}</div>
+                  </div>
+                  <Icon.Check className="h-4 w-4 text-ok shrink-0 mt-1"/>
+                </li>
+              ))}
+            </ul>
+            <div className="px-5 sm:px-6 py-4 border-t border-line flex items-center justify-between">
+              <div className="font-mono text-[11px] text-mute">output</div>
+              <div className="flex items-center gap-2 font-mono text-[11px]">
+                <span className="px-2 py-0.5 rounded-full" style={{background:'rgba(16,185,129,0.15)', color:'#10B981', border:'1px solid rgba(16,185,129,0.35)'}}>SAFE</span>
+                <span className="px-2 py-0.5 rounded-full" style={{background:'rgba(245,158,11,0.15)', color:'#F59E0B', border:'1px solid rgba(245,158,11,0.35)'}}>À RISQUE</span>
+                <span className="px-2 py-0.5 rounded-full" style={{background:'rgba(239,68,68,0.15)', color:'#EF4444', border:'1px solid rgba(239,68,68,0.35)'}}>AFFECTÉ</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* §5 — How it works */
+function HowItWorksSection() {
+  const steps = [
+    { t: 'Tu colles ton URL', d: 'Pas d’inscription, pas de carte, pas d’“appel découverte”.' },
+    { t: 'On analyse 4 axes', d: 'E-E-A-T, Helpful Content, qualité éditoriale, signaux à risque.' },
+    { t: 'Tu reçois ton verdict', d: 'Score sur 100, badge couleur, et tes 3 priorités à corriger.' },
+  ];
+  return (
+    <section data-screen-label="L5 How" className="relative border-t border-line/70 bg-ink">
+      <div className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-24">
+        <SectionLabel n="05">comment ça marche</SectionLabel>
+        <h2 className="mt-4 text-[30px] sm:text-[48px] leading-[1.05] font-semibold tracking-[-0.02em] max-w-[22ch]" style={{textWrap:'balance'}}>
+          3 étapes. 30 secondes.
+        </h2>
+
+        <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 relative">
+          {steps.map((s, i) => (
+            <div key={i} className="relative rounded-2xl border border-line bg-ink2/60 p-6 sm:p-7">
+              <div className="font-mono text-[44px] sm:text-[60px] leading-none font-semibold text-accent/80 tracking-tight tabular">
+                0{i+1}
+              </div>
+              <div className="mt-4 text-[19px] sm:text-[22px] font-semibold tracking-tight">{s.t}</div>
+              <div className="mt-2 text-[14px] text-mute leading-snug">{s.d}</div>
+              {i < steps.length - 1 && (
+                <div className="hidden md:flex absolute top-1/2 -right-2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-ink border border-line2 items-center justify-center">
+                  <Icon.Arrow className="h-3.5 w-3.5 text-mute"/>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* §6 — Who it's for */
+function ForWhoSection() {
+  const segs = [
+    { tag: 'dirigeant PME', t: 'Tu paies une agence et tu sais pas si elle gère le sujet.', d: 'Tu veux une réponse en 30s, sans devenir expert SEO.' },
+    { tag: 'fondateur SaaS', t: 'Ton blog était ta meilleure source de leads. Plus maintenant.', d: 'Tu veux savoir si ça revient ou si c’est mort.' },
+    { tag: 'agence / freelance', t: 'Tu veux pitcher tes clients avec un vrai diagnostic.', d: 'Tu veux un point de départ concret pour le devis.' },
+  ];
+  return (
+    <section data-screen-label="L6 ForWho" className="relative border-t border-line/70">
+      <div className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-24">
+        <SectionLabel n="06">c’est pour qui</SectionLabel>
+        <h2 className="mt-4 text-[30px] sm:text-[44px] leading-[1.05] font-semibold tracking-[-0.02em] max-w-[26ch]" style={{textWrap:'balance'}}>
+          Si tu te reconnais ici, lance le test.
+        </h2>
+
+        <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+          {segs.map((s, i) => (
+            <div key={i} className="rounded-2xl border border-line bg-ink2/60 p-5 sm:p-6">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 border border-accent/30 px-2.5 py-0.5 text-[11px] font-mono text-accent">
+                {s.tag}
+              </div>
+              <div className="mt-4 text-[18px] sm:text-[20px] font-semibold tracking-tight leading-snug" style={{textWrap:'balance'}}>
+                {s.t}
+              </div>
+              <div className="mt-2 text-[13.5px] text-mute leading-snug">{s.d}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* §7 — FAQ */
+function FAQItem({ q, a, idx }) {
+  const [open, setOpen] = useState(idx === 0);
+  return (
+    <div className="border-b border-line">
+      <button onClick={() => setOpen(o => !o)}
+              className="w-full text-left flex items-center justify-between gap-4 py-5 group">
+        <span className="text-[16px] sm:text-[18px] font-semibold tracking-tight pr-3" style={{textWrap:'balance'}}>{q}</span>
+        <span className={"shrink-0 h-7 w-7 rounded-full border border-line2 grid place-items-center transition " + (open ? "bg-accent border-accent text-white" : "text-mute group-hover:text-white")}>
+          <span className="block relative h-3 w-3">
+            <span className="absolute inset-0 m-auto h-[2px] w-3 bg-current rounded"/>
+            <span className={"absolute inset-0 m-auto h-3 w-[2px] bg-current rounded transition " + (open ? "scale-y-0" : "scale-y-100")}/>
+          </span>
+        </span>
+      </button>
+      <div className={"grid transition-all duration-300 ease-out " + (open ? "grid-rows-[1fr] opacity-100 pb-5" : "grid-rows-[0fr] opacity-0")}>
+        <div className="overflow-hidden">
+          <div className="text-[14.5px] sm:text-[15.5px] text-mute leading-relaxed max-w-[60ch] pr-10">
+            {a}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FAQSection() {
+  const items = [
+    { q: 'C’est gratuit, vraiment ?',
+      a: 'Oui. Pas de carte, pas de compte. On en fait un usage marketing : si t’aimes l’outil, tu reviens.' },
+    { q: 'Ça vaut un audit SEO à 3 000 € ?',
+      a: 'Non, et ce n’est pas l’idée. C’est un diagnostic rapide. Si t’es dans le rouge, l’audit complet a du sens. Sinon, t’économises 3 000 €.' },
+    { q: 'Vous stockez mon URL ?',
+      a: 'Non. L’analyse tourne le temps du check. Rien n’est gardé, rien n’est revendu.' },
+    { q: 'Je suis dans le rouge — qu’est-ce que je fais ?',
+      a: 'Tu prends les 3 fixes prioritaires, tu les traites dans l’ordre. La checklist PDF détaille comment. Si tu veux qu’on s’en occupe, MV Agency fait ça.' },
+    { q: 'Pourquoi 4 axes et pas 40 ?',
+      a: 'Parce que 40 critères, c’est ce que vendent les outils SEO. 4 axes, c’est ce que Google regarde vraiment depuis 2024.' },
+  ];
+  return (
+    <section data-screen-label="L7 FAQ" className="relative border-t border-line/70 bg-ink">
+      <div className="mx-auto max-w-3xl px-5 sm:px-8 py-16 sm:py-24">
+        <SectionLabel n="07">questions fréquentes</SectionLabel>
+        <h2 className="mt-4 text-[30px] sm:text-[44px] leading-[1.05] font-semibold tracking-[-0.02em]" style={{textWrap:'balance'}}>
+          Ce qu’on nous demande tout le temps.
+        </h2>
+        <div className="mt-8">
+          {items.map((it, i) => <FAQItem key={i} idx={i} q={it.q} a={it.a}/>)}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* §8 — Final CTA */
+function FinalCTA() {
+  return (
+    <section data-screen-label="L8 FinalCTA" className="relative border-t border-line/70 overflow-hidden">
+      <div className="absolute inset-0 -z-0"
+           style={{ background: 'radial-gradient(800px 400px at 50% 100%, rgba(37,99,235,0.22), transparent 60%)' }}/>
+      <div className="relative mx-auto max-w-3xl px-5 sm:px-8 py-20 sm:py-28 text-center">
+        <SectionLabel n="08">à toi</SectionLabel>
+        <h2 className="mt-4 text-[34px] sm:text-[56px] leading-[1.04] font-semibold tracking-[-0.02em]" style={{textWrap:'balance'}}>
+          30 secondes pour savoir si tu vas survivre.
+        </h2>
+        <p className="mt-5 text-[16px] sm:text-[19px] text-mute max-w-[44ch] mx-auto leading-snug">
+          Le prochain core update arrive. Tu préfères le découvrir maintenant ou le lundi matin ?
+        </p>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <button onClick={scrollToForm}
+            className="inline-flex items-center gap-2 rounded-xl bg-accent hover:bg-accent2 active:scale-[0.99] transition px-6 py-3.5 font-semibold text-[15.5px]">
+            Analyser mon site <Icon.Arrow className="h-4 w-4"/>
+          </button>
+          <span className="font-mono text-[11.5px] text-mute">gratuit · 30s · sans login</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Footer ---------- */
+function Footer() {
+  return (
+    <footer className="border-t border-line/70">
+      <div className="mx-auto max-w-6xl px-5 sm:px-8 h-14 flex items-center justify-between gap-4">
+        <div className="font-mono text-[11.5px] text-mute">
+          Build by <span className="text-white">MV Agency</span> · <a href="#" className="ulink hover:text-white">mvagency.ai</a>
+        </div>
+        <div className="font-mono text-[11.5px] text-mute hidden sm:block">© 2026 · made for survivors</div>
+      </div>
+    </footer>
+  );
+}
+
+/* ---------- App ---------- */
+function App() {
+  const [phase, setPhase] = useState('idle'); // idle | loading | result
+  const [url, setUrl] = useState(null);
+  const [error, setError] = useState(null);
+  const [verdict, setVerdict] = useState(null);
+
+  const start = (u) => { setUrl(u); setPhase('loading'); };
+  const finish = () => { setVerdict(buildVerdict(url)); setPhase('result'); window.scrollTo({ top: 0, behavior: 'instant' }); };
+  const restart = () => { setPhase('idle'); setUrl(null); setVerdict(null); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <TopBar/>
+      <main className="flex-1">
+        {phase === 'idle' && (
+          <>
+            <Hero onSubmit={start} error={error} setError={setError}/>
+            <CarnageSection/>
+            <ExplainerSection/>
+            <ReasonsSection/>
+            <ToolExplainSection/>
+            <HowItWorksSection/>
+            <ForWhoSection/>
+            <FAQSection/>
+            <FinalCTA/>
+          </>
+        )}
+        {phase === 'loading' && <Loader url={url} onDone={finish}/>}
+        {phase === 'result'  && <Result url={url} verdict={verdict} onRestart={restart}/>}
+      </main>
+      <Footer/>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('app')).render(<App/>);
+</script>
+
+</body>
+</html>
