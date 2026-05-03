@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { buildVerdict } from '@/lib/verdict-mock';
 import { normalizeUrl } from '@/lib/url-normalize';
+import { analyzeSite, AnalyzeError } from '@/lib/analyze';
 import type { AnalyzeRequest } from '@/lib/types';
 
-const SIMULATED_LATENCY_MS = 3000;
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   let body: AnalyzeRequest;
@@ -18,8 +18,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'invalid url' }, { status: 400 });
   }
 
-  await new Promise((r) => setTimeout(r, SIMULATED_LATENCY_MS));
-
-  const verdict = buildVerdict(u);
-  return NextResponse.json(verdict);
+  try {
+    const verdict = await analyzeSite(u);
+    return NextResponse.json(verdict);
+  } catch (err) {
+    if (err instanceof AnalyzeError) {
+      console.error(`[analyze] ${err.stage} failed for ${u.hostname}:`, err.message);
+      const status = err.stage === 'scrape' ? 502 : 503;
+      const message =
+        err.stage === 'scrape'
+          ? "Le site n'a pas pu être scanné (protection anti-bot ou indisponible)."
+          : "L'analyse a échoué. Réessaie dans quelques secondes.";
+      return NextResponse.json({ error: message }, { status });
+    }
+    console.error('[analyze] unexpected error:', err);
+    return NextResponse.json({ error: 'unexpected error' }, { status: 500 });
+  }
 }
