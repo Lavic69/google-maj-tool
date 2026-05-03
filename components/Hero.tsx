@@ -29,23 +29,37 @@ export function Hero({ onSubmit, error, setError }: HeroProps) {
   return (
     <section className="relative bg-grid noise overflow-hidden">
       <div className="relative z-10 mx-auto max-w-6xl px-5 sm:px-8 pt-14 sm:pt-24 pb-16 sm:pb-28">
-        <div className="inline-flex items-center gap-2 rounded-full border border-line bg-ink2/60 backdrop-blur px-3 py-1 text-[11.5px] font-mono text-mute">
-          <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+        <div
+          className="risein inline-flex items-center gap-2 rounded-full border border-line bg-ink2/60 backdrop-blur px-3 py-1 text-[11.5px] font-mono text-mute"
+          style={{ animationDelay: '0ms' }}
+        >
+          <span className="h-1.5 w-1.5 rounded-full bg-accent blink" />
           <span>diagnostic · sans inscription · 30s</span>
         </div>
 
-        <h1 className="mt-5 sm:mt-7 text-[34px] leading-[1.05] sm:text-[64px] sm:leading-[1.02] font-semibold tracking-[-0.02em] max-w-[18ch]" style={{ textWrap: 'balance' as React.CSSProperties['textWrap'] }}>
+        <h1
+          className="risein mt-5 sm:mt-7 text-[34px] leading-[1.05] sm:text-[64px] sm:leading-[1.02] font-semibold tracking-[-0.02em] max-w-[18ch]"
+          style={{ textWrap: 'balance' as React.CSSProperties['textWrap'], animationDelay: '120ms' }}
+        >
           Ton site survivra-t-il au prochain <span className="text-accent">Google Update</span> ?
         </h1>
 
-        <p className="mt-4 sm:mt-6 text-[16px] sm:text-[20px] text-mute max-w-[44ch]">
+        <p
+          className="risein mt-4 sm:mt-6 text-[16px] sm:text-[20px] text-mute max-w-[44ch]"
+          style={{ animationDelay: '220ms' }}
+        >
           30 secondes. 4 critères. Un verdict honnête.
         </p>
 
-        <form id="diag-form" onSubmit={submit} className="mt-7 sm:mt-10 max-w-2xl">
-          <div className={'group relative flex flex-col sm:flex-row items-stretch gap-2 rounded-2xl border ' + (error ? 'border-bad/60' : 'border-line2') + ' bg-ink2/80 backdrop-blur p-2'}>
+        <form
+          id="diag-form"
+          onSubmit={submit}
+          className="risein mt-7 sm:mt-10 max-w-2xl"
+          style={{ animationDelay: '320ms' }}
+        >
+          <div className={'group relative flex flex-col sm:flex-row items-stretch gap-2 rounded-2xl border ' + (error ? 'border-bad/60' : 'border-line2') + ' bg-ink2/80 backdrop-blur p-2 transition-colors focus-within:border-accent/60'}>
             <div className="flex items-center gap-2 px-3 sm:px-3 sm:flex-1">
-              <Globe className="h-4 w-4 text-mute shrink-0" />
+              <Globe className="h-4 w-4 text-mute shrink-0 transition-colors group-focus-within:text-accent" />
               <input
                 ref={inputRef}
                 value={val}
@@ -62,10 +76,10 @@ export function Hero({ onSubmit, error, setError }: HeroProps) {
             </div>
             <button
               type="submit"
-              className="shrink-0 inline-flex items-center justify-center gap-2 rounded-xl bg-accent hover:bg-accent2 active:scale-[0.99] transition px-5 py-3.5 sm:py-3 font-semibold text-[15px] tracking-tight"
+              className="cta-glow shrink-0 inline-flex items-center justify-center gap-2 rounded-xl bg-accent hover:bg-accent2 active:scale-[0.98] transition-[transform,background-color] duration-150 px-5 py-3.5 sm:py-3 font-semibold text-[15px] tracking-tight"
             >
               Analyser mon site
-              <Arrow className="h-4 w-4" />
+              <Arrow className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </button>
           </div>
           {error && <div className="mt-2 text-[13px] text-bad font-mono">{error}</div>}
@@ -78,7 +92,11 @@ export function Hero({ onSubmit, error, setError }: HeroProps) {
 
         <div className="mt-12 sm:mt-20 grid grid-cols-2 sm:grid-cols-4 gap-3">
           {AXES.map((a, i) => (
-            <div key={a.key} className="rounded-xl border border-line bg-ink2/60 p-4">
+            <div
+              key={a.key}
+              className="risein lift rounded-xl border border-line bg-ink2/60 p-4"
+              style={{ animationDelay: 460 + i * 80 + 'ms' }}
+            >
               <div className="flex items-center justify-between">
                 <span className="font-mono text-[11px] text-mute">0{i + 1}</span>
                 <Spark className="h-3.5 w-3.5 text-mute2" />

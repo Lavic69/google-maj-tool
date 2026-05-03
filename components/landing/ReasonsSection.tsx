@@ -1,4 +1,7 @@
+'use client';
+
 import { SectionLabel } from '../SectionLabel';
+import { Reveal } from '@/components/Reveal';
 
 export function ReasonsSection() {
   const reasons = [
@@ -31,17 +34,23 @@ export function ReasonsSection() {
   return (
     <section className="relative border-t border-line/70 bg-ink">
       <div className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-24">
-        <SectionLabel n="03">pourquoi ça t’est tombé dessus</SectionLabel>
-        <h2 className="mt-4 text-[30px] sm:text-[48px] leading-[1.05] font-semibold tracking-[-0.02em] max-w-[22ch]" style={{ textWrap: 'balance' as React.CSSProperties['textWrap'] }}>
-          Les 4 raisons pour lesquelles ton site dégage.
-        </h2>
-        <p className="mt-5 text-[16px] sm:text-[18px] text-mute max-w-[58ch] leading-snug">
-          Spoiler : si tu as fait du contenu en 2023-2024 sans cadre clair, tu en coches au moins deux.
-        </p>
+        <Reveal>
+          <SectionLabel n="03">pourquoi ça t’est tombé dessus</SectionLabel>
+        </Reveal>
+        <Reveal delay={80}>
+          <h2 className="mt-4 text-[30px] sm:text-[48px] leading-[1.05] font-semibold tracking-[-0.02em] max-w-[22ch]" style={{ textWrap: 'balance' as React.CSSProperties['textWrap'] }}>
+            Les 4 raisons pour lesquelles ton site dégage.
+          </h2>
+        </Reveal>
+        <Reveal delay={160}>
+          <p className="mt-5 text-[16px] sm:text-[18px] text-mute max-w-[58ch] leading-snug">
+            Spoiler : si tu as fait du contenu en 2023-2024 sans cadre clair, tu en coches au moins deux.
+          </p>
+        </Reveal>
 
         <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           {reasons.map((r, i) => (
-            <div key={i} className="rounded-2xl border border-line bg-ink2/60 p-5 sm:p-6 flex flex-col gap-4">
+            <Reveal key={i} delay={240 + i * 100} className="lift rounded-2xl border border-line bg-ink2/60 p-5 sm:p-6 flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-[11px] text-bad uppercase tracking-wider">#{i+1} · {r.tag}</span>
                 <span className="font-mono text-[10.5px] text-mute2">red flag</span>
@@ -60,7 +69,7 @@ export function ReasonsSection() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </Reveal>
           ))}
         </div>
       </div>

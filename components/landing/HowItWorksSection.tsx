@@ -1,5 +1,8 @@
+'use client';
+
 import { SectionLabel } from '../SectionLabel';
 import { Arrow } from '@/components/Icons';
+import { Reveal } from '@/components/Reveal';
 
 export function HowItWorksSection() {
   const steps = [
@@ -10,14 +13,18 @@ export function HowItWorksSection() {
   return (
     <section className="relative border-t border-line/70 bg-ink">
       <div className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-24">
-        <SectionLabel n="05">comment ça marche</SectionLabel>
-        <h2 className="mt-4 text-[30px] sm:text-[48px] leading-[1.05] font-semibold tracking-[-0.02em] max-w-[22ch]" style={{ textWrap: 'balance' as React.CSSProperties['textWrap'] }}>
-          3 étapes. 30 secondes.
-        </h2>
+        <Reveal>
+          <SectionLabel n="05">comment ça marche</SectionLabel>
+        </Reveal>
+        <Reveal delay={80}>
+          <h2 className="mt-4 text-[30px] sm:text-[48px] leading-[1.05] font-semibold tracking-[-0.02em] max-w-[22ch]" style={{ textWrap: 'balance' as React.CSSProperties['textWrap'] }}>
+            3 étapes. 30 secondes.
+          </h2>
+        </Reveal>
 
         <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 relative">
           {steps.map((s, i) => (
-            <div key={i} className="relative rounded-2xl border border-line bg-ink2/60 p-6 sm:p-7">
+            <Reveal key={i} delay={200 + i * 130} className="lift relative rounded-2xl border border-line bg-ink2/60 p-6 sm:p-7">
               <div className="font-mono text-[44px] sm:text-[60px] leading-none font-semibold text-accent/80 tracking-tight tabular">
                 0{i+1}
               </div>
@@ -28,7 +35,7 @@ export function HowItWorksSection() {
                   <Arrow className="h-3.5 w-3.5 text-mute" />
                 </div>
               )}
-            </div>
+            </Reveal>
           ))}
         </div>
       </div>

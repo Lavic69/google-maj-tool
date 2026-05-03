@@ -1,4 +1,7 @@
+'use client';
+
 import { SectionLabel } from '../SectionLabel';
+import { Reveal } from '@/components/Reveal';
 
 export function ForWhoSection() {
   const segs = [
@@ -9,14 +12,18 @@ export function ForWhoSection() {
   return (
     <section className="relative border-t border-line/70">
       <div className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-24">
-        <SectionLabel n="06">c’est pour qui</SectionLabel>
-        <h2 className="mt-4 text-[30px] sm:text-[44px] leading-[1.05] font-semibold tracking-[-0.02em] max-w-[26ch]" style={{ textWrap: 'balance' as React.CSSProperties['textWrap'] }}>
-          Si tu te reconnais ici, lance le test.
-        </h2>
+        <Reveal>
+          <SectionLabel n="06">c’est pour qui</SectionLabel>
+        </Reveal>
+        <Reveal delay={80}>
+          <h2 className="mt-4 text-[30px] sm:text-[44px] leading-[1.05] font-semibold tracking-[-0.02em] max-w-[26ch]" style={{ textWrap: 'balance' as React.CSSProperties['textWrap'] }}>
+            Si tu te reconnais ici, lance le test.
+          </h2>
+        </Reveal>
 
         <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
           {segs.map((s, i) => (
-            <div key={i} className="rounded-2xl border border-line bg-ink2/60 p-5 sm:p-6">
+            <Reveal key={i} delay={180 + i * 110} className="lift rounded-2xl border border-line bg-ink2/60 p-5 sm:p-6">
               <div className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 border border-accent/30 px-2.5 py-0.5 text-[11px] font-mono text-accent">
                 {s.tag}
               </div>
@@ -24,7 +31,7 @@ export function ForWhoSection() {
                 {s.t}
               </div>
               <div className="mt-2 text-[13.5px] text-mute leading-snug">{s.d}</div>
-            </div>
+            </Reveal>
           ))}
         </div>
       </div>
