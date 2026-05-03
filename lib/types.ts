@@ -2,16 +2,28 @@ export type Tier = 'safe' | 'risk' | 'hit';
 
 export type AxisKey = 'eeat' | 'helpful' | 'edito' | 'risk';
 
+export type ObservationSentiment = 'good' | 'bad' | 'neutral';
+
+export interface Observation {
+  sentiment: ObservationSentiment;
+  text: string;
+}
+
 export interface Axis {
   key: AxisKey;
   label: string;
   hint: string;
   score: number;
+  observations: Observation[];
 }
+
+export type FixTiming = 'now' | 'soon' | 'later';
 
 export interface Fix {
   t: string;
   d: string;
+  effort: string;
+  timing: FixTiming;
 }
 
 export interface Verdict {

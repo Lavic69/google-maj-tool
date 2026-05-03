@@ -1,7 +1,7 @@
 import { anthropic, ANTHROPIC_MODEL, isAnthropicConfigured } from './anthropic';
 import { scrape, FirecrawlError, ScrapedPage } from './firecrawl';
 import { AXES } from './verdict-mock';
-import type { Axis, AxisKey, Tier, Verdict } from './types';
+import type { Axis, AxisKey, FixTiming, Observation, ObservationSentiment, Tier, Verdict } from './types';
 
 const SYSTEM_PROMPT = `Tu es un auditeur SEO qui évalue le risque qu'un site web prenne une pénalité au prochain Google core update.
 
@@ -45,16 +45,39 @@ Profondeur, ton, soin du texte.
   - 50 ≤ score < 75 → "risk"
   - score < 50 → "hit"
 
+# Observations par axe
+
+Pour CHAQUE axe, tu fournis 3 observations concrètes basées sur ce que tu as vu dans le contenu :
+- Chaque observation a un sentiment : "good" (point positif), "bad" (point négatif), "neutral" (constat sans jugement)
+- Chaque observation cite un élément précis (titre vu, auteur vu/manquant, ton observé, structure observée)
+- PAS de conseil dans les observations — c'est du constat, pas du fix
+- Mix typique selon le score :
+  - score ≥ 75 : 2 good + 1 neutral, ou 3 good
+  - 50-74 : 1 good + 1 neutral + 1 bad
+  - < 50 : 2 bad + 1 neutral, ou 3 bad
+
+# Plan d'action (les 3 fixes)
+
+Tu produis 3 fixes, ordonnés par impact (le plus impactant en premier).
+Pour chaque fix :
+- t : titre court (action verbale, max 70 caractères)
+- d : description (max 150 caractères, cite un élément concret du site)
+- effort : estimation courte (ex : "30 min", "2h", "1 jour", "2 jours", "1 semaine", "2 semaines")
+- timing : quand attaquer ce fix
+  - "now" → cette semaine (quick wins, < 1 jour de boulot, ou urgent)
+  - "soon" → semaines 2-3 (effort moyen, 1-3 jours)
+  - "later" → d'ici 1 mois (gros chantier, ≥ 1 semaine)
+
+Idéalement, répartis les 3 fixes sur les 3 horizons (un now, un soon, un later) pour donner un plan progressif. Si la situation est critique, plusieurs "now" sont OK.
+
 # Règles de production
 
 1. Tu réponds via l'outil submit_verdict. Pas de texte autour.
 2. Tu ne notes QUE ce que tu peux observer dans le contenu fourni. Tu ne supposes PAS ce qui n'est pas montré.
-3. Si la page scrapée est vide, partielle ou clairement bloquée (anti-bot, captcha, login), tu pénalises Signaux à risque (impossible de juger = signal négatif) et tu mentionnes ça dans explain.
-4. Chaque fix DOIT citer un élément concret du site (titre d'article observé, élément manquant que tu as cherché, ton observé). PAS de conseils génériques.
-5. Tone : tutoie, pas de jargon SEO obscur, phrases courtes (max 15 mots).
-6. Le champ "explain" contient EXACTEMENT 3 lignes courtes qui expliquent le verdict.
-7. Le champ "fixes" contient EXACTEMENT 3 entrées priorisées par impact.
-8. Pas d'emoji dans les sorties. Pas de markdown. Texte brut.`;
+3. Si la page scrapée est vide, partielle ou clairement bloquée (anti-bot, captcha, login), tu pénalises Signaux à risque (impossible de juger = signal négatif), tu mentionnes ça dans explain, et tu produis quand même 3 fixes basés sur le peu que tu vois.
+4. Tone : tutoie, pas de jargon SEO obscur, phrases courtes (max 15 mots).
+5. Le champ "explain" contient EXACTEMENT 3 lignes courtes qui expliquent le verdict.
+6. Pas d'emoji dans les sorties. Pas de markdown. Texte brut.`;
 
 const VERDICT_TOOL = {
   name: 'submit_verdict',
@@ -73,7 +96,7 @@ const VERDICT_TOOL = {
       },
       axes: {
         type: 'array',
-        description: 'Les 4 sous-scores, dans l\'ordre eeat / helpful / edito / risk',
+        description: 'Les 4 sous-scores avec observations, dans l\'ordre eeat / helpful / edito / risk',
         items: {
           type: 'object',
           properties: {
@@ -85,15 +108,36 @@ const VERDICT_TOOL = {
               type: 'number',
               description: 'Score /100 de cet axe',
             },
+            observations: {
+              type: 'array',
+              description: 'Exactement 3 observations concrètes citant des éléments du site',
+              items: {
+                type: 'object',
+                properties: {
+                  sentiment: {
+                    type: 'string',
+                    enum: ['good', 'bad', 'neutral'],
+                    description: 'good = point positif observé, bad = problème observé, neutral = constat sans jugement',
+                  },
+                  text: {
+                    type: 'string',
+                    description: 'Observation concrète, max 100 caractères',
+                  },
+                },
+                required: ['sentiment', 'text'],
+              },
+              minItems: 3,
+              maxItems: 3,
+            },
           },
-          required: ['key', 'score'],
+          required: ['key', 'score', 'observations'],
         },
         minItems: 4,
         maxItems: 4,
       },
       fixes: {
         type: 'array',
-        description: 'Exactement 3 fixes priorisés, chacun citant un élément concret du site',
+        description: 'Exactement 3 fixes priorisés (impact descendant), chacun avec effort + timing',
         items: {
           type: 'object',
           properties: {
@@ -105,8 +149,17 @@ const VERDICT_TOOL = {
               type: 'string',
               description: 'Description (max 150 caractères, mentionne un élément concret du site)',
             },
+            effort: {
+              type: 'string',
+              description: 'Effort estimé, format court (ex : "30 min", "1 jour", "1 semaine")',
+            },
+            timing: {
+              type: 'string',
+              enum: ['now', 'soon', 'later'],
+              description: 'now = cette semaine, soon = sem 2-3, later = d\'ici 1 mois',
+            },
           },
-          required: ['t', 'd'],
+          required: ['t', 'd', 'effort', 'timing'],
         },
         minItems: 3,
         maxItems: 3,
@@ -123,11 +176,29 @@ const VERDICT_TOOL = {
   },
 };
 
+interface RawObservation {
+  sentiment: ObservationSentiment;
+  text: string;
+}
+
+interface RawAxis {
+  key: AxisKey;
+  score: number;
+  observations: RawObservation[];
+}
+
+interface RawFix {
+  t: string;
+  d: string;
+  effort: string;
+  timing: FixTiming;
+}
+
 interface RawVerdict {
   score: number;
   tier: Tier;
-  axes: Array<{ key: AxisKey; score: number }>;
-  fixes: Array<{ t: string; d: string }>;
+  axes: RawAxis[];
+  fixes: RawFix[];
   explain: string[];
 }
 
@@ -164,19 +235,36 @@ function deriveTier(score: number): Tier {
   return 'hit';
 }
 
+const VALID_SENTIMENTS: ReadonlySet<ObservationSentiment> = new Set(['good', 'bad', 'neutral']);
+const VALID_TIMINGS: ReadonlySet<FixTiming> = new Set(['now', 'soon', 'later']);
+
+function sanitizeObservations(raw: RawObservation[] | undefined): Observation[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, 3).map((o) => ({
+    sentiment: VALID_SENTIMENTS.has(o?.sentiment) ? o.sentiment : 'neutral',
+    text: String(o?.text || '').slice(0, 200),
+  }));
+}
+
 function hydrateVerdict(raw: RawVerdict): Verdict {
   const score = clamp(raw.score);
   const tier = deriveTier(score);
 
-  const axesByKey = new Map(raw.axes.map((a) => [a.key, clamp(a.score)]));
-  const axes: Axis[] = AXES.map((meta) => ({
-    ...meta,
-    score: axesByKey.get(meta.key) ?? score,
-  }));
+  const rawByKey = new Map(raw.axes.map((a) => [a.key, a]));
+  const axes: Axis[] = AXES.map((meta) => {
+    const found = rawByKey.get(meta.key);
+    return {
+      ...meta,
+      score: clamp(found?.score ?? score),
+      observations: sanitizeObservations(found?.observations),
+    };
+  });
 
   const fixes = raw.fixes.slice(0, 3).map((f) => ({
-    t: String(f.t || '').slice(0, 200),
-    d: String(f.d || '').slice(0, 400),
+    t: String(f?.t || '').slice(0, 200),
+    d: String(f?.d || '').slice(0, 400),
+    effort: String(f?.effort || '').slice(0, 60) || 'à estimer',
+    timing: VALID_TIMINGS.has(f?.timing) ? f.timing : 'soon',
   }));
 
   const explain = raw.explain.slice(0, 3).map((s) => String(s || '').slice(0, 200));
@@ -201,7 +289,7 @@ export async function analyzeSite(url: URL): Promise<Verdict> {
   try {
     const response = await anthropic.messages.create({
       model: ANTHROPIC_MODEL,
-      max_tokens: 1024,
+      max_tokens: 2048,
       system: [
         {
           type: 'text',

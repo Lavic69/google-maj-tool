@@ -1,7 +1,7 @@
 'use client';
 
-import { TIER_META } from '@/lib/verdict-mock';
-import type { Verdict } from '@/lib/types';
+import { TIER_META, TIMING_LABEL } from '@/lib/verdict-mock';
+import type { Axis, Fix, FixTiming, Observation, ObservationSentiment, Verdict } from '@/lib/types';
 import { ScoreRing } from './ScoreRing';
 import { Restart } from './Icons';
 
@@ -9,6 +9,103 @@ interface ResultProps {
   url: URL;
   verdict: Verdict;
   onRestart: () => void;
+}
+
+const SENTIMENT_STYLE: Record<ObservationSentiment, { glyph: string; color: string }> = {
+  good:    { glyph: '✓', color: '#10B981' },
+  bad:     { glyph: '✗', color: '#EF4444' },
+  neutral: { glyph: '·', color: '#8A93A6' },
+};
+
+const TIMING_STYLE: Record<FixTiming, { color: string; bg: string; ring: string }> = {
+  now:   { color: '#EF4444', bg: 'rgba(239,68,68,0.10)',  ring: 'rgba(239,68,68,0.35)' },
+  soon:  { color: '#F59E0B', bg: 'rgba(245,158,11,0.10)', ring: 'rgba(245,158,11,0.35)' },
+  later: { color: '#3B82F6', bg: 'rgba(59,130,246,0.10)', ring: 'rgba(59,130,246,0.35)' },
+};
+
+function axisColor(score: number): string {
+  return score >= 75 ? '#10B981' : score >= 50 ? '#F59E0B' : '#EF4444';
+}
+
+function ObservationRow({ obs }: { obs: Observation }) {
+  const style = SENTIMENT_STYLE[obs.sentiment];
+  return (
+    <li className="flex items-start gap-2.5">
+      <span
+        className="font-mono text-[14px] leading-[1.4] shrink-0 mt-[1px] tabular w-3 text-center"
+        style={{ color: style.color }}
+        aria-hidden="true"
+      >
+        {style.glyph}
+      </span>
+      <span className="text-[13.5px] text-white/85 leading-snug">{obs.text}</span>
+    </li>
+  );
+}
+
+function AxisDetailCard({ axis, delay }: { axis: Axis; delay: number }) {
+  const c = axisColor(axis.score);
+  return (
+    <div
+      className="risein rounded-xl border border-line bg-ink2/70 p-5"
+      style={{ animationDelay: delay + 'ms' }}
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <div>
+          <div className="font-mono text-[10.5px] text-mute uppercase tracking-wider">{axis.label}</div>
+          <div className="text-[12.5px] text-mute leading-snug max-w-[34ch]">{axis.hint}</div>
+        </div>
+        <div className="flex items-baseline gap-1 shrink-0">
+          <span className="tabular text-[26px] font-semibold leading-none" style={{ color: c }}>
+            {axis.score}
+          </span>
+          <span className="font-mono text-[11px] text-mute">/100</span>
+        </div>
+      </div>
+
+      <div className="mt-3 h-1.5 rounded-full bg-ink3 overflow-hidden">
+        <div className="h-full rounded-full" style={{ width: axis.score + '%', background: c }} />
+      </div>
+
+      {axis.observations.length > 0 && (
+        <ul className="mt-4 space-y-2">
+          {axis.observations.map((obs, i) => (
+            <ObservationRow key={i} obs={obs} />
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function FixCard({ fix, index, delay }: { fix: Fix; index: number; delay: number }) {
+  const tStyle = TIMING_STYLE[fix.timing];
+  const tLabel = TIMING_LABEL[fix.timing];
+  return (
+    <li
+      className="risein rounded-xl border border-line bg-ink2/70 p-5 flex flex-col gap-3"
+      style={{ animationDelay: delay + 'ms' }}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="shrink-0 h-7 w-7 rounded-lg bg-accent/15 text-accent grid place-items-center font-mono font-semibold text-[12.5px]">
+          0{index + 1}
+        </div>
+        <span
+          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11.5px] font-mono font-semibold"
+          style={{ background: tStyle.bg, color: tStyle.color, border: `1px solid ${tStyle.ring}` }}
+        >
+          {tLabel}
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-ink3 border border-line2 px-2.5 py-0.5 text-[11.5px] font-mono text-mute">
+          ~ {fix.effort}
+        </span>
+      </div>
+      <div>
+        <div className="text-[15.5px] sm:text-[16px] font-semibold tracking-tight">{fix.t}</div>
+        <div className="mt-1 text-[13.5px] text-mute leading-snug">{fix.d}</div>
+      </div>
+    </li>
+  );
 }
 
 export function Result({ url, verdict, onRestart }: ResultProps) {
@@ -52,7 +149,7 @@ export function Result({ url, verdict, onRestart }: ResultProps) {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-line border-t" style={{ borderColor: '#252A36' }}>
             {verdict.axes.map((a) => {
-              const c = a.score >= 75 ? '#10B981' : a.score >= 50 ? '#F59E0B' : '#EF4444';
+              const c = axisColor(a.score);
               return (
                 <div key={a.key} className="bg-ink2 p-4">
                   <div className="font-mono text-[10.5px] text-mute uppercase tracking-wider">{a.label}</div>
@@ -69,26 +166,36 @@ export function Result({ url, verdict, onRestart }: ResultProps) {
           </div>
         </div>
 
-        <div className="mt-8 sm:mt-10">
+        {/* Diagnostic par axe — observations détaillées */}
+        <div className="mt-10 sm:mt-12">
           <div className="flex items-end justify-between gap-3">
             <div>
-              <div className="font-mono text-[11.5px] text-mute uppercase tracking-wider">priorités</div>
-              <h3 className="mt-1 text-[22px] sm:text-[26px] font-semibold tracking-tight">Top 3 fixes</h3>
+              <div className="font-mono text-[11.5px] text-mute uppercase tracking-wider">diagnostic</div>
+              <h3 className="mt-1 text-[22px] sm:text-[26px] font-semibold tracking-tight">Ce qu’on a vu, axe par axe</h3>
             </div>
-            <div className="font-mono text-[11.5px] text-mute hidden sm:block">à faire avant le prochain update</div>
+            <div className="font-mono text-[11.5px] text-mute hidden sm:block">observations concrètes</div>
           </div>
 
-          <ol className="mt-4 sm:mt-5 space-y-2.5">
+          <div className="mt-4 sm:mt-5 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+            {verdict.axes.map((a, i) => (
+              <AxisDetailCard key={a.key} axis={a} delay={300 + i * 80} />
+            ))}
+          </div>
+        </div>
+
+        {/* Plan d'action — timeline */}
+        <div className="mt-10 sm:mt-12">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <div className="font-mono text-[11.5px] text-mute uppercase tracking-wider">plan d’action</div>
+              <h3 className="mt-1 text-[22px] sm:text-[26px] font-semibold tracking-tight">Tes 3 priorités, séquencées</h3>
+            </div>
+            <div className="font-mono text-[11.5px] text-mute hidden sm:block">par ordre d’impact</div>
+          </div>
+
+          <ol className="mt-4 sm:mt-5 space-y-3">
             {verdict.fixes.map((f, i) => (
-              <li key={i} className="risein rounded-xl border border-line bg-ink2/70 p-4 sm:p-5 flex gap-4" style={{ animationDelay: 260 + i * 90 + 'ms' }}>
-                <div className="shrink-0 h-8 w-8 rounded-lg bg-accent/15 text-accent grid place-items-center font-mono font-semibold">
-                  0{i + 1}
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[15.5px] font-semibold tracking-tight">{f.t}</div>
-                  <div className="mt-0.5 text-[13.5px] text-mute leading-snug">{f.d}</div>
-                </div>
-              </li>
+              <FixCard key={i} fix={f} index={i} delay={500 + i * 90} />
             ))}
           </ol>
         </div>
